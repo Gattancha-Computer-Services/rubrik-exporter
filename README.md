@@ -1,4 +1,9 @@
 # rubrik-exporter
+Based on the rubrik-exporter by claranet (https://github.com/claranet/rubrik-exporter)
+It has been upgraded to compile with Go v1.25 and also work is underway to use the Rubrik GraphQL API instead of REST
+
+It is very much a WIP at this point
+
 Rubrik metrics exporter for Prometheus
 
 A lightweight exporter that exposes Rubrik backup metrics in Prometheus format. Supports deployment as standalone binary or systemd service.
@@ -19,7 +24,7 @@ A lightweight exporter that exposes Rubrik backup metrics in Prometheus format. 
 
 **Build the binary:**
 ```bash
-git clone https://github.com/claranet/rubrik-exporter.git
+git clone https://github.com/Gattancha-Computer-Services/rubrik-exporter.git
 cd rubrik-exporter
 go build -o rubrik-exporter .
 ```
