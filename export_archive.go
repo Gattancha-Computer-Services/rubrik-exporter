@@ -11,7 +11,8 @@
 package main
 
 import (
-	"github.com/claranet/rubrik-exporter/rubrik"
+	"log"
+
 	"github.com/prometheus/client_golang/prometheus"
 )
 
@@ -27,13 +28,9 @@ func (e ArchiveLocation) Describe(ch chan<- *prometheus.Desc) {
 
 // Collect ...
 func (e *ArchiveLocation) Collect(ch chan<- prometheus.Metric) {
-	storages := make(map[string]rubrik.VmStorage)
-
-	for _, s := range rubrikAPI.GetPerVMStorage() {
-		storages[s.ID] = s
-	}
-
 	locations := rubrikAPI.GetArchiveLocations()
+	log.Printf("ArchiveLocation.Collect: found %d locations", len(locations))
+
 	for _, l := range locations {
 
 		var g prometheus.Gauge

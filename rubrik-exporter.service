@@ -1,0 +1,42 @@
+[Unit]
+Description=Rubrik Exporter - Prometheus metrics exporter for Rubrik backup
+Documentation=https://github.com/Gattancha-Computer-Services/rubrik-exporter
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=prometheus
+Group=prometheus
+
+# Start command - credentials loaded from environment file
+ExecStart=/usr/bin/rubrik-exporter \
+  -rubrik.url=${RUBRIK_URL} \
+  -rubrik.username=${RUBRIK_USER} \
+  -rubrik.password=${RUBRIK_PASSWORD} \
+  -listen-address=${LISTEN_ADDRESS:-:9477}
+
+# Load environment variables from /etc/default/rubrik-exporter
+EnvironmentFile=-/etc/default/rubrik-exporter
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=rubrik-exporter
+
+# Restart policy
+Restart=on-failure
+RestartSec=10s
+
+# Resource limits (adjust as needed)
+MemoryLimit=512M
+
+# Security hardening
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=yes
+ReadWritePaths=/var/log
+
+[Install]
+WantedBy=multi-user.target

@@ -11,8 +11,10 @@
 package rubrik
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/url"
 )
 
@@ -44,7 +46,33 @@ type NodeStat struct {
 
 // GetNodes - Returns the List of all Rubrik Nodes
 func (r Rubrik) GetNodes() []Node {
-	resp, _ := r.makeRequest("GET", "/api/internal/node", RequestParams{})
+	// Try GraphQL first
+	if r.graphqlClient != nil {
+		var response NodesResponse
+		err := r.graphqlClient.ExecuteQuery(context.Background(), NodesQuery, nil, &response)
+		if err == nil {
+			// Convert GraphQL response to Node structs
+			nodes := make([]Node, len(response.Nodes))
+			for i, node := range response.Nodes {
+				nodes[i] = Node{
+					ID:              node.ID,
+					BrikID:          node.Name, // GraphQL 'name' maps to 'brikId'
+					Status:          node.Status,
+					IPAddress:       node.IPAddress,
+					NeedsInspection: node.NeedsInspection,
+				}
+			}
+			return nodes
+		}
+		log.Printf("GraphQL GetNodes failed, falling back to REST: %v", err)
+	}
+
+	// Fallback to REST API
+	resp, err := r.makeRequest("GET", "/api/internal/node", RequestParams{})
+	if err != nil || resp == nil {
+		return []Node{}
+	}
+	defer resp.Body.Close()
 
 	var l NodeList
 	decoder := json.NewDecoder(resp.Body)
@@ -55,10 +83,14 @@ func (r Rubrik) GetNodes() []Node {
 
 // GetNodeStats ...
 func (r Rubrik) GetNodeStats(id string) NodeStat {
-	resp, _ := r.makeRequest(
+	resp, err := r.makeRequest(
 		"GET",
 		fmt.Sprintf("/api/internal/node/%s/stats", id),
 		RequestParams{params: url.Values{"range": []string{"-10min"}}})
+	if err != nil || resp == nil {
+		return NodeStat{}
+	}
+	defer resp.Body.Close()
 
 	var result NodeStat
 	decoder := json.NewDecoder(resp.Body)

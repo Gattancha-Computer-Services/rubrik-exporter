@@ -11,7 +11,7 @@
 package main
 
 import (
-	"github.com/claranet/rubrik-exporter/rubrik"
+	"github.com/Gattancha-Computer-Services/rubrik-exporter/rubrik"
 	"github.com/prometheus/client_golang/prometheus"
 )
 
@@ -35,7 +35,7 @@ type RubrikStats struct {
 
 	SystemPhysicalIngest *prometheus.GaugeVec
 
-	SystemStorageTotal         *prometheus.GaugeVec
+	SystemStorageSize          *prometheus.GaugeVec
 	SystemStorageUsed          *prometheus.GaugeVec
 	SystemStorageAvailable     *prometheus.GaugeVec
 	SystemStorageSnapshot      *prometheus.GaugeVec
@@ -69,7 +69,7 @@ func (e *RubrikStats) Describe(ch chan<- *prometheus.Desc) {
 
 	e.SystemPhysicalIngest.Describe(ch)
 
-	e.SystemStorageTotal.Describe(ch)
+	e.SystemStorageSize.Describe(ch)
 	e.SystemStorageUsed.Describe(ch)
 	e.SystemStorageAvailable.Describe(ch)
 	e.SystemStorageSnapshot.Describe(ch)
@@ -128,26 +128,38 @@ func (e *RubrikStats) Collect(ch chan<- prometheus.Metric) {
 	for _, v := range nodes {
 		nodeStat := rubrikAPI.GetNodeStats(v.ID)
 
-		g = e.NodeNetworkReceived.WithLabelValues(v.ID)
-		g.Set(float64(nodeStat.NetworkStat.BytesReceived[0].Stat))
-		g.Collect(ch)
-		g = e.NodeNetworkTransmitted.WithLabelValues(v.ID)
-		g.Set(float64(nodeStat.NetworkStat.BytesTransmitted[0].Stat))
-		g.Collect(ch)
+		if len(nodeStat.NetworkStat.BytesReceived) > 0 {
+			g = e.NodeNetworkReceived.WithLabelValues(v.ID)
+			g.Set(float64(nodeStat.NetworkStat.BytesReceived[0].Stat))
+			g.Collect(ch)
+		}
+		if len(nodeStat.NetworkStat.BytesTransmitted) > 0 {
+			g = e.NodeNetworkTransmitted.WithLabelValues(v.ID)
+			g.Set(float64(nodeStat.NetworkStat.BytesTransmitted[0].Stat))
+			g.Collect(ch)
+		}
 
-		g = e.NodeIOPRead.WithLabelValues(v.ID)
-		g.Set(float64(nodeStat.Iops.ReadsPerSecond[0].Stat))
-		g.Collect(ch)
-		g = e.NodeIOPWrite.WithLabelValues(v.ID)
-		g.Set(float64(nodeStat.Iops.WritesPerSecond[0].Stat))
-		g.Collect(ch)
+		if len(nodeStat.Iops.ReadsPerSecond) > 0 {
+			g = e.NodeIOPRead.WithLabelValues(v.ID)
+			g.Set(float64(nodeStat.Iops.ReadsPerSecond[0].Stat))
+			g.Collect(ch)
+		}
+		if len(nodeStat.Iops.WritesPerSecond) > 0 {
+			g = e.NodeIOPWrite.WithLabelValues(v.ID)
+			g.Set(float64(nodeStat.Iops.WritesPerSecond[0].Stat))
+			g.Collect(ch)
+		}
 
-		g = e.NodeThroughputRead.WithLabelValues(v.ID)
-		g.Set(float64(nodeStat.IOThroughput.ReadBytePerSecond[0].Stat))
-		g.Collect(ch)
-		g = e.NodeThroughputWrite.WithLabelValues(v.ID)
-		g.Set(float64(nodeStat.IOThroughput.WriteBytePerSecond[0].Stat))
-		g.Collect(ch)
+		if len(nodeStat.IOThroughput.ReadBytePerSecond) > 0 {
+			g = e.NodeThroughputRead.WithLabelValues(v.ID)
+			g.Set(float64(nodeStat.IOThroughput.ReadBytePerSecond[0].Stat))
+			g.Collect(ch)
+		}
+		if len(nodeStat.IOThroughput.WriteBytePerSecond) > 0 {
+			g = e.NodeThroughputWrite.WithLabelValues(v.ID)
+			g.Set(float64(nodeStat.IOThroughput.WriteBytePerSecond[0].Stat))
+			g.Collect(ch)
+		}
 
 	}
 
@@ -165,7 +177,7 @@ func (e *RubrikStats) Collect(ch chan<- prometheus.Metric) {
 	g = e.SystemStorageSnapshot.WithLabelValues()
 	g.Set(float64(systemStorage.Snapshot))
 	g.Collect(ch)
-	g = e.SystemStorageTotal.WithLabelValues()
+	g = e.SystemStorageSize.WithLabelValues()
 	g.Set(float64(systemStorage.Total))
 	g.Collect(ch)
 	g = e.SystemStorageUsed.WithLabelValues()
@@ -183,10 +195,13 @@ func (e *RubrikStats) Collect(ch chan<- prometheus.Metric) {
 			}
 		}
 
-		g = e.ArchiveStorageBandwith.WithLabelValues(l.Name, l.IPAddress)
-		val := rubrikAPI.GetArchivalBandwith(l.ID, "-10min")[0].Stat
-		g.Set(float64(val))
-		g.Collect(ch)
+		bandwidthData := rubrikAPI.GetArchivalBandwith(l.ID, "-10min")
+		if len(bandwidthData) > 0 {
+			g = e.ArchiveStorageBandwith.WithLabelValues(l.Name, l.IPAddress)
+			val := bandwidthData[0].Stat
+			g.Set(float64(val))
+			g.Collect(ch)
+		}
 
 		g = e.ArchiveStorageDataArchived.WithLabelValues(l.Name, l.IPAddress)
 		g.Set(float64(usage.DataArchived))
@@ -220,9 +235,11 @@ func (e *RubrikStats) Collect(ch chan<- prometheus.Metric) {
 	}
 
 	ingest := rubrikAPI.GetPhysicalIngest()
-	g = e.SystemPhysicalIngest.WithLabelValues()
-	g.Set(float64(ingest[0].Stat))
-	g.Collect(ch)
+	if len(ingest) > 0 {
+		g = e.SystemPhysicalIngest.WithLabelValues()
+		g.Set(float64(ingest[0].Stat))
+		g.Collect(ch)
+	}
 }
 
 // NewRubrikStatsExport ...
@@ -305,8 +322,8 @@ func NewRubrikStatsExport() *RubrikStats {
 			Namespace: namespace, Name: "system_storage_snapshot",
 			Help: "storage bytes used by snapshots",
 		}, []string{}),
-		SystemStorageTotal: prometheus.NewGaugeVec(prometheus.GaugeOpts{
-			Namespace: namespace, Name: "system_storage_total",
+		SystemStorageSize: prometheus.NewGaugeVec(prometheus.GaugeOpts{
+			Namespace: namespace, Name: "system_storage_size",
 			Help: "total available bytes",
 		}, []string{}),
 		SystemStorageUsed: prometheus.NewGaugeVec(prometheus.GaugeOpts{

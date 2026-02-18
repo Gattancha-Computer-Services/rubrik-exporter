@@ -1,0 +1,8 @@
+module github.com/claranet/rubrik-exporter
+
+go 1.25
+
+require (
+	github.com/machinebox/graphql v0.2.2
+	github.com/prometheus/client_golang v1.20.5
+)

@@ -13,7 +13,7 @@ package main
 import (
 	"strings"
 
-	"github.com/claranet/rubrik-exporter/rubrik"
+	"github.com/Gattancha-Computer-Services/rubrik-exporter/rubrik"
 	"github.com/prometheus/client_golang/prometheus"
 )
 
