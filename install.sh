@@ -32,7 +32,7 @@ echo "[3/5] Creating systemd unit file..."
 cat > /etc/systemd/system/rubrik-exporter.service << 'EOF'
 [Unit]
 Description=Rubrik Exporter
-Documentation=https://github.com/claranet/rubrik-exporter
+Documentation=https://github.com/Gattancha-Computer-Services/rubrik-exporter
 After=network-online.target
 Wants=network-online.target
 
@@ -44,6 +44,8 @@ ExecStart=/usr/bin/rubrik-exporter \
   -rubrik.url=${RUBRIK_URL} \
   -rubrik.username=${RUBRIK_USER} \
   -rubrik.password=${RUBRIK_PASSWORD} \
+  -rubrik.service-account-client-id=${RUBRIK_SERVICE_ACCOUNT_CLIENT_ID} \
+  -rubrik.service-account-client-secret=${RUBRIK_SERVICE_ACCOUNT_CLIENT_SECRET} \
   -listen-address=:9477
 
 # Environment file - create /etc/default/rubrik-exporter with your config

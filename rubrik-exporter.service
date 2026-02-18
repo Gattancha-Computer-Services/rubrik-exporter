@@ -1,6 +1,6 @@
 [Unit]
 Description=Rubrik Exporter - Prometheus metrics exporter for Rubrik backup
-Documentation=https://github.com/claranet/rubrik-exporter
+Documentation=https://github.com/Gattancha-Computer-Services/rubrik-exporter
 After=network-online.target
 Wants=network-online.target
 

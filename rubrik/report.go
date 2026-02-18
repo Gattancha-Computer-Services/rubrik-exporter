@@ -1,8 +1,10 @@
 package rubrik
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/url"
 	"strings"
 )
@@ -41,6 +43,27 @@ type ReportDataPoint struct {
 }
 
 func (r Rubrik) GetReports(params map[string]string) []Report {
+	// Try GraphQL first
+	if r.graphqlClient != nil {
+		var response ReportsResponse
+		err := r.graphqlClient.ExecuteQuery(context.Background(), ReportsQuery, nil, &response)
+		if err == nil {
+			// Convert GraphQL response to Report structs
+			reports := make([]Report, len(response.Reports.Edges))
+			for i, edge := range response.Reports.Edges {
+				reports[i] = Report{
+					ID:         edge.Node.ID,
+					Name:       edge.Node.Name,
+					ReportType: edge.Node.ReportType,
+					UpdateStatus: edge.Node.Status,
+				}
+			}
+			return reports
+		}
+		log.Printf("GraphQL GetReports failed, falling back to REST: %v", err)
+	}
+
+	// Fallback to REST API
 	_params := &RequestParams{params: url.Values{}}
 	for k, v := range params {
 		_params.params[k] = []string{v}

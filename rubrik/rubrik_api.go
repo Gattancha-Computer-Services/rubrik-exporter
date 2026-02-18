@@ -11,9 +11,9 @@
 package rubrik
 
 import (
-	//	"os"
 	"crypto/tls"
 	"fmt"
+	"io"
 	"log"
 	"net/http"
 	"net/url"
@@ -30,8 +30,15 @@ type Rubrik struct {
 	username string
 	password string
 
+	// Service account authentication (OAuth2 client credentials)
+	serviceAccountClientID     string
+	serviceAccountClientSecret string
+
 	sessionToken string
 	isLoggedIn   bool
+
+	// GraphQL client for new API
+	graphqlClient *GraphQLClient
 }
 
 func (r *Rubrik) makeRequest(reqType string, action string, p RequestParams) (*http.Response, error) {
@@ -65,6 +72,9 @@ func (r *Rubrik) makeRequest(reqType string, action string, p RequestParams) (*h
 	// Check HTTP status code
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		log.Printf("API Error: HTTP %d from %s", resp.StatusCode, action)
+		// Read response body for error details
+		bodyBytes, _ := io.ReadAll(resp.Body)
+		log.Printf("API Error Response: %s", string(bodyBytes))
 		resp.Body.Close()
 		// Return empty response with error to prevent JSON parsing of error pages
 		return nil, fmt.Errorf("HTTP %d: %s", resp.StatusCode, action)
@@ -74,18 +84,26 @@ func (r *Rubrik) makeRequest(reqType string, action string, p RequestParams) (*h
 }
 
 // NewRubrik - Creates a new Rubrik API instance and login to it
-func NewRubrik(url string, username string, password string) *Rubrik {
+func NewRubrik(url string, username string, password string, serviceAccountClientID string, serviceAccountClientSecret string) *Rubrik {
 
 	log.Print("Create new API Instance")
 	session := &Rubrik{
-		url:          url,
-		username:     username,
-		password:     password,
-		sessionToken: "",
-		isLoggedIn:   false,
+		url:                         url,
+		username:                    username,
+		password:                    password,
+		serviceAccountClientID:      serviceAccountClientID,
+		serviceAccountClientSecret:  serviceAccountClientSecret,
+		sessionToken:                "",
+		isLoggedIn:                  false,
 	}
 	session.Login()
+
+	// Initialize GraphQL client with session token
+	graphqlEndpoint := strings.TrimSuffix(url, "/") + "/api/graphql"
+	session.graphqlClient = NewGraphQLClient(graphqlEndpoint, session.sessionToken)
+
 	log.Printf("Session-Token: %s", session.sessionToken)
+	log.Printf("GraphQL endpoint: %s", graphqlEndpoint)
 
 	return session
 }

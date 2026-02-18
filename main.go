@@ -16,7 +16,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/claranet/rubrik-exporter/rubrik"
+	"github.com/Gattancha-Computer-Services/rubrik-exporter/rubrik"
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -26,18 +26,20 @@ var rubrikAPI *rubrik.Rubrik
 var vmIDNameMap map[string]string
 
 var (
-	namespace      = "rubrik"
-	rubrikURL      = flag.String("rubrik.url", "", "Rubrik URL to connect https://rubrik.local.host")
-	rubrikUser     = flag.String("rubrik.username", "", "Rubrik API User")
-	rubrikPassword = flag.String("rubrik.password", "", "Rubrik API User Password")
-	listenAddress  = flag.String("listen-address", ":9477", "The address to lisiten on for HTTP requests.")
+	namespace                    = "rubrik"
+	rubrikURL                    = flag.String("rubrik.url", "", "Rubrik URL to connect https://rubrik.local.host")
+	rubrikUser                   = flag.String("rubrik.username", "", "Rubrik API User")
+	rubrikPassword               = flag.String("rubrik.password", "", "Rubrik API User Password")
+	rubrikServiceAccountClientID = flag.String("rubrik.service-account-client-id", "", "Rubrik Service Account Client ID")
+	rubrikServiceAccountClientSecret = flag.String("rubrik.service-account-client-secret", "", "Rubrik Service Account Client Secret")
+	listenAddress                = flag.String("listen-address", ":9477", "The address to listen on for HTTP requests.")
 )
 
 func main() {
 	flag.Parse()
 
 	log.Print("Create Rubrik Exporter instance")
-	rubrikAPI = rubrik.NewRubrik(*rubrikURL, *rubrikUser, *rubrikPassword)
+	rubrikAPI = rubrik.NewRubrik(*rubrikURL, *rubrikUser, *rubrikPassword, *rubrikServiceAccountClientID, *rubrikServiceAccountClientSecret)
 
 	prometheus.MustRegister(NewRubrikStatsExport())
 	prometheus.MustRegister(NewVMStatsExport())

@@ -1,4 +1,4 @@
-.PHONY: build run clean help
+.PHONY: build run clean help deps
 
 # Variables
 BINARY_NAME=rubrik-exporter
@@ -12,7 +12,6 @@ help:
 	@echo "  make run         - Build and run the exporter"
 	@echo "  make clean       - Remove the binary"
 	@echo "  make deps        - Download dependencies"
-	@echo "  make docker-build - Build Docker image"
 
 deps:
 	$(GO) mod download
@@ -27,6 +26,3 @@ run: build
 clean:
 	$(GO) clean
 	rm -f $(BINARY_NAME)
-
-docker-build:
-	docker build -t claranet/rubrik-exporter:latest .

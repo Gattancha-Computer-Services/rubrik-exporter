@@ -1,7 +1,7 @@
 # rubrik-exporter
 Rubrik metrics exporter for Prometheus
 
-A lightweight exporter that exposes Rubrik backup metrics in Prometheus format. Supports deployment as Docker container, standalone binary, or systemd service.
+A lightweight exporter that exposes Rubrik backup metrics in Prometheus format. Supports deployment as standalone binary or systemd service.
 
 ## Requirements
 
@@ -12,44 +12,7 @@ A lightweight exporter that exposes Rubrik backup metrics in Prometheus format. 
 
 ## Installation & Usage
 
-### Option 1: Docker Container
-
-**Quick start:**
-```bash
-docker run --detached \
-  --name rubrik-exporter \
-  --publish 9477:9477 \
-  claranet/rubrik-exporter \
-    -rubrik.url https://myrubrik.company.org \
-    -rubrik.username "prometheus@local" \
-    -rubrik.password 'MyPassword'
-```
-
-**Docker Compose:**
-```yaml
-version: '3'
-services:
-  rubrik-exporter:
-    image: claranet/rubrik-exporter:latest
-    ports:
-      - "9477:9477"
-    command:
-      - -rubrik.url=https://myrubrik.company.org
-      - -rubrik.username=prometheus@local
-      - -rubrik.password=MyPassword
-    restart: unless-stopped
-```
-
-**Build Docker image locally:**
-```bash
-make docker-build
-docker run --publish 9477:9477 claranet/rubrik-exporter:latest \
-  -rubrik.url https://myrubrik.company.org \
-  -rubrik.username "prometheus@local" \
-  -rubrik.password 'MyPassword'
-```
-
-### Option 2: Standalone Binary
+### Option 1: Standalone Binary
 
 **Prerequisites:**
 - Go 1.25 or later (only needed for building)
@@ -87,7 +50,43 @@ make run
 make clean
 ```
 
-### Option 3: Install as Systemd Service (Linux)
+**Prerequisites:**
+- Go 1.25 or later (only needed for building)
+
+**Build the binary:**
+```bash
+git clone https://github.com/claranet/rubrik-exporter.git
+cd rubrik-exporter
+go build -o rubrik-exporter .
+```
+
+Or with make:
+```bash
+make build
+```
+
+**Run directly:**
+```bash
+./rubrik-exporter \
+  -rubrik.url https://myrubrik.company.org \
+  -rubrik.username "prometheus@local" \
+  -rubrik.password 'MyPassword'
+```
+
+**Run with environment variables (using make):**
+```bash
+RUBRIK_URL=https://myrubrik.company.org \
+RUBRIK_USER=prometheus@local \
+RUBRIK_PASSWORD=MyPassword \
+make run
+```
+
+**Clean up binary:**
+```bash
+make clean
+```
+
+### Option 2: Install as Systemd Service (Linux)
 
 **Automated installation:**
 ```bash
@@ -106,11 +105,19 @@ This script will:
 sudo nano /etc/default/rubrik-exporter
 ```
 
-Edit the file and uncomment/set:
+Edit the file and uncomment/set one of the authentication methods:
+
+**Option 1: Username/Password Authentication:**
 ```bash
 RUBRIK_URL=https://myrubrik.company.org
 RUBRIK_USER=prometheus@local
 RUBRIK_PASSWORD=MyPassword
+```
+
+**Option 2: Service Account Authentication (recommended):**
+```bash
+RUBRIK_URL=https://myrubrik.company.org
+RUBRIK_SERVICE_ACCOUNT=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9...
 ```
 
 **Start the service:**
@@ -154,18 +161,31 @@ All configuration is done via command-line flags or environment variables (when 
 | Flag | Environment | Default | Required | Description |
 |------|-------------|---------|----------|-------------|
 | `-rubrik.url` | `RUBRIK_URL` | - | ✓ | Rubrik cluster URL (https://rubrik.example.com) |
-| `-rubrik.username` | `RUBRIK_USER` | - | ✓ | Rubrik API username |
-| `-rubrik.password` | `RUBRIK_PASSWORD` | - | ✓ | Rubrik API password |
+| `-rubrik.username` | `RUBRIK_USER` | - | * | Rubrik API username (not required if using service account) |
+| `-rubrik.password` | `RUBRIK_PASSWORD` | - | * | Rubrik API password (not required if using service account) |
+| `-rubrik.service-account-client-id` | `RUBRIK_SERVICE_ACCOUNT_CLIENT_ID` | - | * | Rubrik service account client ID (alternative to username/password) |
+| `-rubrik.service-account-client-secret` | `RUBRIK_SERVICE_ACCOUNT_CLIENT_SECRET` | - | * | Rubrik service account client secret (alternative to username/password) |
 | `-listen-address` | `LISTEN_ADDRESS` | `:9477` | | HTTP binding address |
 
-**Example:**
+**Authentication Options:**
+
+1. **Username/Password Authentication (default):**
 ```bash
 ./rubrik-exporter \
   -rubrik.url https://rubrik.example.com \
   -rubrik.username prometheus@local \
-  -rubrik.password secure_password \
-  -listen-address 0.0.0.0:9477
+  -rubrik.password secure_password
 ```
+
+2. **Service Account Authentication (recommended - OAuth2 client credentials):**
+```bash
+./rubrik-exporter \
+  -rubrik.url https://rubrik.example.com \
+  -rubrik.service-account-client-id "your-client-id" \
+  -rubrik.service-account-client-secret "your-client-secret"
+```
+
+**Example:**
 
 ## Prometheus Integration
 
